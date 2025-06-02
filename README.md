@@ -193,13 +193,8 @@ def apply_motion_vectors_to_frame(frame, motion_vectors, block_size):
     new_frame = np.zeros_like(frame)
     num_blocks_y, num_blocks_x = frame.shape[0] // block_size[1], frame.shape[1] // block_size[0]
 
-    for idx, motion_vector in enumerate(motion_vectors):
-        block_y = (idx // num_blocks_x) * block_size[1]
-        block_x = (idx % num_blocks_x) * block_size[0]
-        new_block_y, new_block_x = block_y + motion_vector[1], block_x + motion_vector[0]
-
-        if 0 <= new_block_x < frame.shape[1] - block_size[0] and 0 <= new_block_y < frame.shape[0] - block_size[1]:
-            new_frame[new_block_y:new_block_y + block_size[1], new_block_x:new_block_x + block_size[0]] = frame[block_y:block_y + block_size[1], block_x:block_x + block_size[0]]
+    .........
+    .......
 
     return new_frame
 
@@ -217,31 +212,8 @@ def diamond_search(block, ref_frame, block_pos_x, block_pos_y, max_search_range)
             candidate_block = ref_frame[y1:y2, x1:x2]
             return np.sum(np.abs(block.astype(np.int32) - candidate_block.astype(np.int32)))
         else:
-            return float('inf')
-
-    min_sad = float('inf')
-    motion_vector = (0, 0)
-
-    center_x, center_y = block_pos_x, block_pos_y
-
-    # Large diamond search
-    for dx, dy in large_diamond:
-        x, y = center_x + dx, center_y + dy
-        sad = get_sad(x, y)
-        if sad < min_sad:
-            min_sad = sad
-            motion_vector = (x - block_pos_x, y - block_pos_y)
-
-    # Refine with small diamond search
-    center_x, center_y = block_pos_x + motion_vector[0], block_pos_y + motion_vector[1]
-    for dx, dy in small_diamond:
-        x, y = center_x + dx, center_y + dy
-        sad = get_sad(x, y)
-        if sad < min_sad:
-            min_sad = sad
-            motion_vector = (x - block_pos_x, y - block_pos_y)
-
-    return motion_vector
+      ..........
+..........................
 
 
 """----------------------------------------Split here for ipynb--------------------------------------"""
@@ -254,24 +226,8 @@ num_clusters = 5
 seconds_to_process = 60
 frame_rate = 24
 cap = cv2.VideoCapture(video_path)
-if not cap.isOpened():
-    raise IOError("Cannot open video")
-
-
-ret, first_frame = cap.read()
-if not ret:
-    raise IOError("Cannot read the first frame")
-
-blocks_first = image_to_blocks(first_frame, block_size)
-average_colors_first = calculate_average_color(blocks_first)
-kmeans = KMeans(n_clusters=num_clusters, random_state=42)
-kmeans.fit(average_colors_first)
-cluster_assignments_first = kmeans.labels_
-cluster_centers = kmeans.cluster_centers_
-
-original_frames = [first_frame]
-compressed_data = []
-count = 0
+.....
+......
 
 
 """----------------------------------------Split here for ipynb--------------------------------------"""
@@ -294,22 +250,9 @@ for _ in range(seconds_to_process * frame_rate - 1):
 
 total_frames = len(original_frames) - 1
 compressed_data = []
-
-# Second pass to calculate residuals and compress
-for i in range(1, len(original_frames)):
-    current_frame = original_frames[i - 1]
-    next_frame = original_frames[i]
-    motion_vectors = calculate_motion_vectors(current_frame, next_frame, block_size)
-    predicted_frame = apply_motion_vectors_to_frame(current_frame, motion_vectors, block_size)
-    residual_frame = calculate_residual_frame(next_frame, predicted_frame)
-
-    # Use numpy array instead of list for residual
-    encoded_data = encode_video_data(cluster_assignments_first, motion_vectors, block_size, current_frame.shape)
-    encoded_data['residual'] = residual_frame  # Store as numpy array
-    compressed_data.append(encoded_data)
-
-    progress_percentage = (i / total_frames) * 100
-    print(f"Compressing frame {i}/{total_frames} ({progress_percentage:.2f}%)")
+...
+...
+...
 
 # Save compressed_data to a file
 compressed_data_path = 'compressed_data.pkl'
@@ -330,29 +273,8 @@ with open(compressed_data_path, 'rb') as file:
     compressed_data = pickle.load(file)
 
 print("Compressed data successfully loaded.")
-
-refresh_rate = 4
-def refresh_needed(frame_count, refresh_rate):
-    return frame_count % refresh_rate == 0
-decompressed_frames = []
-reference_frame = original_frames[0]
-frame_count = 0
-
-for encoded_data in compressed_data:
-    frame_count += 1
-    motion_vectors = np.array(encoded_data['motion_model']).reshape(-1, 2)
-    residual_frame = np.array(encoded_data['residual'], dtype=np.uint8)
-
-    predicted_frame = apply_motion_vectors_to_frame(reference_frame, motion_vectors, block_size)
-    reconstructed_frame = apply_residual_frame(predicted_frame, residual_frame)
-
-    decompressed_frames.append(reconstructed_frame)
-
-    if refresh_needed(frame_count, refresh_rate):
-        reference_frame = original_frames[min(frame_count, len(original_frames) - 1)]
-    else:
-        reference_frame = reconstructed_frame
-
+..........................................
+...........................................
 import cv2
 
 output_video_path = 'reconstructed_video2.avi'
